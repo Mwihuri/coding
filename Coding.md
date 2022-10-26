@@ -25,7 +25,7 @@ Inline Comments
 
 Inline comments explaining the functioning of the subroutine or key aspects of the algorithm shall be frequently used.
 
-Classes, Methods and Namespaces
+Classes, Methods and Namespace
 --------------------------------------
 
 Classes, methods and namespaces shall be reasonably sized. We shall as much as possible try to constrain each method to limited action(s).
