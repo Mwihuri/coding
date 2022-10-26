@@ -11,7 +11,7 @@ This module displays documentation related to the coding standards product
    
      
    * - BR20
-     - Previous banking product from 2020
+     - Previous banking product from the year 2020
  
 
    * - Front End User Manual
