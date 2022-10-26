@@ -1,0 +1,47 @@
+{% extends "!layout.html" %}
+  {% block footer %} {{ super() }}
+
+    <style>
+     .wy-nav-content {
+         max-width: 1100px !important;
+      }
+      /* Sidebar header (and topbar for mobile) */
+	    .wy-side-nav-search, .wy-nav-top {
+	      background: #202339;
+           }
+        /* Sidebar */
+            .wy-nav-side {
+              background: #202339;
+           }
+	/* Header Text color in left bar */ 
+	   span.caption-text {
+	     color: #f60031;
+	     }
+    
+    
+    /*
+    .wy-nav-content {
+         max-width: 1100px !important;
+      }
+      /* Sidebar header (and topbar for mobile) 
+	    .wy-side-nav-search, .wy-nav-top {
+	      background: #0d274d;
+           }
+        /* Sidebar */
+            .wy-nav-side {
+              background: #0d274d;
+           }
+      .wy-menu-vertical a {
+        color: #ffffff;
+      }
+	/* Header Text color in left bar 
+	   span.caption-text {
+	     color: #6ebe4a;
+	     }
+
+	     .wy-side-nav-search .wy-dropdown > a img.logo, .wy-side-nav-search > a img.logo {
+	    width: 100px;
+	    }
+      */
+   </style>
+{% endblock %}

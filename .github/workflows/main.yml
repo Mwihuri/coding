@@ -1,0 +1,225 @@
+############################
+# Pipeline Metadata
+############################
+name: ci
+
+############################
+# Pipeline Triggers
+############################
+on:
+  push:
+    branches:
+      - "**"
+
+  workflow_dispatch:
+
+############################
+# Environment Variables
+############################
+env:
+  BASE_VERSION: "1.1.0"
+  ACTIONS_VERSION: 'master'
+
+############################
+# Jobs
+############################
+jobs:
+  Build:
+    runs-on: kubernetes-runner
+
+    defaults:
+      run:
+        shell: bash -ex {0}
+
+    outputs:
+      branch-name: ${{ steps.image_tag.outputs.branch-name-raw }}
+      version: "v${{ steps.image_tag.outputs.image-version }}"
+
+    steps:
+      ##############
+      # Initialize
+      ##############
+      - name: '[Initialize] Checkout ${{ github.event.repository.name }} repository'
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: '[Initialize] Checkout actions repository'
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ github.repository_owner }}/actions
+          ref: ${{ env.ACTIONS_VERSION }}
+          path: actions
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: '[Initialize] Runner cleanup'
+        uses: ./actions/clean-runner
+
+      - name: '[Initialize] Set up Docker Buildx'
+        uses: docker/setup-buildx-action@v1
+        with:
+          driver: docker
+
+      ##############
+      # Build
+      ##############
+      - name: '[Build] Define image tag name'
+        id: image_tag
+        uses: ./actions/define-image-tag
+        with:
+          registry: ${{ secrets.DOCKER_REGISTRY_SERVER }}
+          project: controller
+
+      - name: '[Build] Login to DockerHub'
+        uses: docker/login-action@v1 
+        with:
+          registry: ${{ secrets.DOCKER_REGISTRY_SERVER }}
+          username: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+
+      - name: '[Build] Tag versions'
+        run: |
+          # Set commit info
+          git config --local user.email "EdgehawkSystem@edgehawk-security.com"
+          git config --local user.name "Edgehawk CI"
+
+          # Create tags
+          git tag "v${{ env.BASE_VERSION }}" -m "v${{ env.BASE_VERSION }}" -f
+          git tag latest -m latest -f
+
+      - name: '[Build] Build Docker image'
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          load: true
+          tags: |
+            ${{ steps.image_tag.outputs.image-tags }}
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
+            VERSION=${{ steps.image_tag.outputs.image-version }}
+
+      ##############
+      # Publish
+      ##############
+      - name: "[Publish] Push Docker image"
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ${{ steps.image_tag.outputs.image-tags }}
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
+            VERSION=${{ steps.image_tag.outputs.image-version }}
+        if: ${{ steps.image_tag.outputs.branch-name == 'master' }}
+
+      - name: "[Publish] Create and push Git tag (build)"
+        id: git_tag
+        uses: ./actions/git-tag
+        with:
+          tag: "v${{ steps.image_tag.outputs.image-version }}"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          unshallow: "false"
+        if: ${{ steps.image_tag.outputs.branch-name == 'master' }}
+
+      - name: "[Publish] Create and push Git tag (version)"
+        uses: ./actions/git-tag
+        with:
+          tag: "v${{ env.BASE_VERSION }}"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          unshallow: "false"
+          override: "true"
+        if: ${{ steps.image_tag.outputs.branch-name == 'master' }}
+
+      - name: "[Publish] Create and push Git tag (latest)"
+        uses: ./actions/git-tag
+        with:
+          tag: "latest"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          unshallow: "false"
+          override: "true"
+        if: ${{ steps.image_tag.outputs.branch-name == 'master' }}
+
+      - name: "[Publish] Create Release"
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: "v${{ steps.image_tag.outputs.image-version }}"
+          release_name: "v${{ steps.image_tag.outputs.image-version }}"
+          body: |
+            **Docker image**: `${{ steps.image_tag.outputs.image-tag }}`
+          draft: false
+          prerelease: ${{ steps.image_tag.outputs.prerelease }}
+        if: ${{ steps.git_tag.outputs.tag-exists == 'false' && steps.image_tag.outputs.branch-name == 'master'}}
+
+      - name: "[Publish] Create artifacts JSON"
+        run: |
+          # Create artifacts.json file
+          cat <<EOF > artifacts.json
+          {
+            "docker_image": "${{ steps.image_tag.outputs.image-tag }}"
+          }
+          EOF
+        if: ${{ steps.git_tag.outputs.tag-exists == 'false' && steps.image_tag.outputs.branch-name == 'master'}}
+
+      - name: "[Publish] Upload artifacts.json release asset"
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts.json
+          asset_name: artifacts.json
+          asset_content_type: application/json
+        if: ${{ steps.git_tag.outputs.tag-exists == 'false' && steps.image_tag.outputs.branch-name == 'master'}}
+
+  Deploy:
+    runs-on: kubernetes-runner
+    needs: Build
+    if: ${{ needs.Build.outputs.branch-name == 'master' }}
+
+    steps:
+      ##############
+      # Initialize
+      ##############
+      - name: "[Initialize] Checkout ${{ github.event.repository.name }} repository"
+        uses: actions/checkout@v2
+
+      - name: "[Initialize] Checkout actions repository"
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ github.repository_owner }}/actions
+          ref: ${{ env.ACTIONS_VERSION }}
+          path: actions
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: "[Initialize] Configure AWS credentials"
+        uses: aws-actions/configure-aws-credentials@v1.5.5
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.EKS_REGION }}
+
+      - name: "[Initialize] Download artifacts.json"
+        id: artifacts_json
+        uses: ./actions/download-artifacts-json
+        with:
+          repository: ${{ github.repository_owner }}/${{ github.event.repository.name }}
+          release-tag: ${{ needs.Build.outputs.version }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      ##############
+      # Deploy
+      ##############
+      - name: "[Deploy] Deploy to EKS"
+        uses: ./actions/deploy-to-eks
+        with:
+          aws-region: ${{ secrets.EKS_REGION }}
+          eks-name: ${{ secrets.EKS_NAME }}
+          artifacts-json: ${{ steps.artifacts_json.outputs.artifacts-json }}
+          branch: ${{ needs.Build.outputs.branch-name }}

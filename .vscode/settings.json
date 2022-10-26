@@ -1,0 +1,8 @@
+{
+    "restructuredtext.confPath": "${workspaceFolder}",
+    "cSpell.words": [
+        "GPRS",
+        "TEID",
+        "toctree"
+    ]
+}
