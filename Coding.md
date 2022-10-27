@@ -1,4 +1,4 @@
-Coding Standards
+Coding Standard
 **********************
 The following set of guideline items should be followed when coding the new banking product. 
 
