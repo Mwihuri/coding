@@ -4,9 +4,6 @@ sphinx-rtd-theme==0.5.2
 sphinx-multiversion==0.2.4
 recommonmark==0.7.1
 sphinx-markdown-tables==0.0.15
-=======
 sphinx-markdown-tables==0.0.15
->>>>>>> 9935c68411210b1a8e3e71f5db4a18978883102f
-=======
 sphinx-markdown-tables==0.0.15
->>>>>>> 7303a53b33ba33e4a574bc38a29d777604ed7a7a
+
