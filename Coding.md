@@ -1,4 +1,4 @@
-Coding Standard
+Coding Standards
 **********************
 The following set of guideline items should be followed when coding the new banking product. 
 
@@ -114,14 +114,82 @@ Use of Braces
 ---------------------
 We shall use the Allman bracing style:
 
-::
+    ::
     for (int j = 0 ; j < max_count ; ++j) 
 
     {     
         // Some work here.
     } 
 
-  
-     
+      
 Braces shall be used even when there is only one statement in the block;
 
+Presentation Coding
+---------------------
+
+The following guide lines shall be used at presentation level development;
+
+**JS and CSS**
+
+JavaScript files shall be named similar to the files implementing them unless the js File is to be used globally;
+
+JavaScript Source files shall be within the Scripts Folder, within sub folders named similar to the sub folder under which the file implementing the script is located
+
+e.g. if Identity>Identitymaintenance.cshtml uses Identitymaintenance.js, Identitymaintenance.js shall be located in Scripts>Identity>Identitymaintenance.js
+
+CSS files shall be located in Content Folder
+
+Inline JavaScript and CSS shall be avoided at all cost 
+
+**Controls**
+
+Html Helpers shall be used as much as possible to define controls;
+
+**Example**
+
+Bad:
+ ::
+ <input type = "textbox" ID = "txtFirstName"/>
+
+Good:
+ ::
+ @Html.Kendo().TeqxtBoxFor(model => model.dtoClientDetails.FirstName).HtmlAttributes(new { ID = "txtFirstName" })
+
+Controls shall be named in a standard format where the prefix of the name is the abbreviation of the control type name as shown;
+
+
+.. list-table:: Controls
+   :widths: 25 30 
+   :header-rows: 1
+
+   * - Control
+     - Prefix
+
+   * - Label
+     - 	lbl
+
+   * - Textbox
+     - 	txt
+
+   * - DataGrid
+     - 	dtg
+
+   * - Button
+     - 	btn
+
+   * - ImageButton
+     - 	imb
+
+   * - Hyperlink
+     - 	hlk
+
+   * - DropDownList
+     - 	ddl
+
+   * - ListBox
+     - 	lst
+
+   * - DataList
+     - 	 dtl
+
+    
